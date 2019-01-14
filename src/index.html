@@ -13,7 +13,7 @@
     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.js'></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.css' rel='stylesheet' />
     <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
-
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <style>
         html,
         body {
@@ -22,11 +22,47 @@
             width: 100%;
             height: 100%;
         }
+
+        .route_point {
+            background-size: cover;
+            width: 32px;
+            height: 32px;
+            /*            border-radius: 50%; */
+            cursor: pointer;
+            /*
+            background-color: white;
+            border: solid #36beff 5px;
+            */
+            z-index: 2;
+            background-image: url('http://www.nagai.net/icon-kan/var/udon.img/tenpa.gif');
+        }
+
+        .start_point {
+            background-size: cover;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            background-image: url('./start.png');
+            z-index: 5;
+        }
+
+        .goal_point {
+            background-size: cover;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            background-image: url('./goal.png');
+            z-index: 5;
+        }
     </style>
 </head>
 
 <body>
-    <div id='map' style='width: 100%; height: 100%;'></div>
+    <div id='map' style='width: 100%; height: 80%;'></div>
+    <div id='list' style='width: 100%; height: 20%;overflow: scroll;'>
+        <ul></ul>
+    </div>
+
     <script>
         mapboxgl.accessToken = 'pk.eyJ1IjoiY3R5byIsImEiOiJjanF2cTNjMm8weHVjNDJrOGV2anp3NDFwIn0.4pGtZ9Run1--9FR8NBkuqg';
         var map = new mapboxgl.Map({
@@ -63,14 +99,21 @@
                         }
                     });
 
+                    var el = document.createElement('div'); el.className = 'start_point';
                     start = new mapboxgl.Marker({
+                        element: el,
                         draggable: true
                     }).setLngLat([134.0412469, 34.3493544]).addTo(map);
-
+                    var el = document.createElement('div'); el.className = 'goal_point';
                     goal = new mapboxgl.Marker({
+                        element: el,
                         draggable: true
                     }).setLngLat([134.0078172, 34.2143716]).addTo(map);
-                    //                    start.on('dragend', onDragEnd);
+
+                    start.on('dragend', get_near_udon_list);
+                    goal.on('dragend', get_near_udon_list);
+
+                    get_near_udon_list();
                 });
         });
 
@@ -90,35 +133,87 @@
         // これを残りポイントがなくなるまで実施する
         // リスト化してpolylineを描画する
 
-        function get_near_udon_list(_start, _goal) {
-            var dist_limit = 1000 / 1000;
+        var last_dist = 9999;
+        var palready_draw, routelist = [];
+        function init() {
+            routelist.forEach(p => {
+                p.remove();
+            });
 
-            var point = get_nearest_point(_start, _goal);
-            if (point === false) {
-                return;
-            }
-            var point_marker = new mapboxgl.Marker().setLngLat(point.geometry.coordinates).addTo(map);
-
-            var s_p_dist = turf.distance(
-                turf.point([start.getLngLat().lng, start.getLngLat().lat]),
-                turf.point(point.geometry.coordinates)
-            );
-            if (s_p_dist < dist_limit) {
-                get_near_udon_list(_start, point_marker);
-            }
-
-
-            var p_g_dist = turf.distance(
-                turf.point(point.geometry.coordinates),
-                turf.point([goal.getLngLat().lng, goal.getLngLat().lat]),
-            );
-            if (p_g_dist > dist_limit) {
-                get_near_udon_list(point_marker, _goal);
-            }
-
+            last_dist = 99999;
+            already_draw = [];
+            routelist = [];
+            $('#list > ul').html('');
         }
 
-        var already_draw = [];
+        function get_near_udon_list() {
+            init();
+            var _start = start;
+            while (true) {
+                var next_start = get_nearest_point(_start, goal);
+
+                var el = document.createElement('div'); el.className = 'route_point';
+                _start = new mapboxgl.Marker(el).setLngLat(next_start.geometry.coordinates);
+                _start.title = next_start.properties.title;
+                _start.link = next_start.properties.link;
+                var dist = turf.distance(
+                    turf.point([_start.getLngLat().lng, _start.getLngLat().lat]),
+                    turf.point([goal.getLngLat().lng, goal.getLngLat().lat])
+                );
+                if (dist < 500 / 1000 || last_dist <= dist) {
+                    break;
+                }
+
+                _start.addTo(map);
+                routelist.push(_start);
+                last_dist = dist;
+            }
+
+            routelist.forEach(function (point) {
+                $('#list > ul').append('<li>' + '<a target="_blank" href="' + point.link + '">' + point.title + '</a>' + '</li>');
+            });
+            drawRoute();
+        }
+
+        function drawRoute() {
+            var mapLayer = map.getLayer('route');
+            if(typeof mapLayer !== 'undefined') {
+                map.removeLayer("route").removeSource('route');
+            }
+
+            var coordinates = [];
+            coordinates.push([start.getLngLat().lng,start.getLngLat().lat])
+            routelist.forEach(function (point) {
+                coordinates.push([point.getLngLat().lng,point.getLngLat().lat]);
+            });
+            coordinates.push([goal.getLngLat().lng,goal.getLngLat().lat])
+
+
+            map.addLayer({
+                "id": "route",
+                "type": "line",
+                "source": {
+                    "type": "geojson",
+                    "data": {
+                        "type": "Feature",
+                        "properties": {},
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": coordinates
+                        }
+                    }
+                },
+                "layout": {
+                    "line-join": "round",
+                    "line-cap": "round"
+                },
+                "paint": {
+                    "line-color": "red",
+                    "line-width": 2
+                }
+            });
+        }
+
         function get_nearest_point(s, g) {
             // global udon
             var min = 999999;
