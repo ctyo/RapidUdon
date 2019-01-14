@@ -59,6 +59,14 @@
                     });
                 });
         });
+
+        map.on('click', 'points', function(point) {
+            var html = '<a target="_blank" href="'+point.features[0].properties.link+'">'+point.features[0].properties.title+'</a>'
+            new mapboxgl.Popup()
+            .setLngLat(point.lngLat)
+            .setHTML(html)
+            .addTo(map);
+        });
     </script>
 
 </body>
