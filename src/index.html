@@ -12,6 +12,8 @@
     <link rel="shortcut icon" href="">
     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.js'></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
+
     <style>
         html,
         body {
@@ -34,11 +36,14 @@
             zoom: 9
         });
 
+        var udon = {};
+        var start, goal = {}
         map.on('load', function () {
             fetch('udon.json')
                 .then(function (res) {
                     return res.json();
                 }).then(function (json) {
+                    udon = json;
                     map.addLayer({
                         "id": "points",
                         "type": "symbol",
@@ -57,16 +62,100 @@
                             */
                         }
                     });
+
+                    start = new mapboxgl.Marker({
+                        draggable: true
+                    }).setLngLat([134.0412469, 34.3493544]).addTo(map);
+
+                    goal = new mapboxgl.Marker({
+                        draggable: true
+                    }).setLngLat([134.0078172, 34.2143716]).addTo(map);
+                    //                    start.on('dragend', onDragEnd);
                 });
         });
 
-        map.on('click', 'points', function(point) {
-            var html = '<a target="_blank" href="'+point.features[0].properties.link+'">'+point.features[0].properties.title+'</a>'
+        map.on('click', 'points', function (point) {
+            var html = '<a target="_blank" href="' + point.features[0].properties.link + '">' + point.features[0].properties.title + '</a>'
             new mapboxgl.Popup()
-            .setLngLat(point.lngLat)
-            .setHTML(html)
-            .addTo(map);
+                .setLngLat(point.lngLat)
+                .setHTML(html)
+                .addTo(map);
         });
+
+        // startとgoalのピンを置く
+        // urlに位置は反映させる
+        // startとgoalに仮で直線を引く
+        // 閾値(1km程度)内に一番近いポイントで二分割する
+        // ポイントとstart, goalに仮で直線を引く....
+        // これを残りポイントがなくなるまで実施する
+        // リスト化してpolylineを描画する
+
+        function get_near_udon_list(_start, _goal) {
+            var dist_limit = 1000 / 1000;
+
+            var point = get_nearest_point(_start, _goal);
+            if (point === false) {
+                return;
+            }
+            var point_marker = new mapboxgl.Marker().setLngLat(point.geometry.coordinates).addTo(map);
+
+            var s_p_dist = turf.distance(
+                turf.point([start.getLngLat().lng, start.getLngLat().lat]),
+                turf.point(point.geometry.coordinates)
+            );
+            if (s_p_dist < dist_limit) {
+                get_near_udon_list(_start, point_marker);
+            }
+
+
+            var p_g_dist = turf.distance(
+                turf.point(point.geometry.coordinates),
+                turf.point([goal.getLngLat().lng, goal.getLngLat().lat]),
+            );
+            if (p_g_dist > dist_limit) {
+                get_near_udon_list(point_marker, _goal);
+            }
+
+        }
+
+        var already_draw = [];
+        function get_nearest_point(s, g) {
+            // global udon
+            var min = 999999;
+            var ret = null;
+            for (var i = 0; i < udon.features.length; i++) {
+                dist = min_d2(udon.features[i].geometry.coordinates[0],
+                    udon.features[i].geometry.coordinates[1],
+                    s.getLngLat().lng, s.getLngLat().lat,
+                    g.getLngLat().lng, g.getLngLat().lat);
+                if (dist < min && !already_draw.includes(udon.features[i].properties.link)) {
+                    min = dist
+                    ret = i;
+                }
+            }
+            if (ret === null) { return false }
+            already_draw.push(udon.features[ret].properties.link)
+            return udon.features[ret];
+        }
+
+        function min_d2(x0, y0, x1, y1, x2, y2) {
+            var a = x2 - x1;
+            var b = y2 - y1;
+            var a2 = a * a;
+            var b2 = b * b;
+            var r2 = a2 + b2;
+            var tt = -(a * (x1 - x0) + b * (y1 - y0));
+            if (tt < 0) {
+                return (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
+            }
+            if (tt > r2) {
+                return (x2 - x0) * (x2 - x0) + (y2 - y0) * (y2 - y0);
+            }
+            var f1 = a * (y1 - y0) - b * (x1 - x0);
+            return (f1 * f1) / r2;
+        }
+
+
     </script>
 
 </body>
