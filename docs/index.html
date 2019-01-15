@@ -39,20 +39,23 @@
 
         .start_point {
             background-size: cover;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             cursor: pointer;
             background-image: url('./start.png');
             z-index: 5;
+            image-rendering: pixelated;
+
         }
 
         .goal_point {
             background-size: cover;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             cursor: pointer;
             background-image: url('./goal.png');
             z-index: 5;
+            image-rendering: pixelated;
         }
     </style>
 </head>
@@ -169,7 +172,7 @@
                     turf.point([_start.getLngLat().lng, _start.getLngLat().lat]),
                     turf.point([goal.getLngLat().lng, goal.getLngLat().lat])
                 );
-                if (dist < 10 / 1000 || last_dist+0.1 <= dist) {
+                if (dist < 20 / 1000 || last_dist+0.1 <= dist) {
                     break;
                 }
 
