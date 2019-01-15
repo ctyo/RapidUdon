@@ -108,16 +108,18 @@
                         }
                     });
 
+
+                    var init_points = parseUrl();
                     var el = document.createElement('div'); el.className = 'start_point';
                     start = new mapboxgl.Marker({
                         element: el,
                         draggable: true
-                    }).setLngLat([134.0412469, 34.3493544]).addTo(map);
+                    }).setLngLat(init_points.start).addTo(map);
                     var el = document.createElement('div'); el.className = 'goal_point';
                     goal = new mapboxgl.Marker({
                         element: el,
                         draggable: true
-                    }).setLngLat([134.0078172, 34.2143716]).addTo(map);
+                    }).setLngLat(init_points.goal).addTo(map);
 
                     start.on('drag', get_near_udon_list);
                     goal.on('drag', get_near_udon_list);
@@ -186,6 +188,7 @@
                 $('#list > ol').append('<li>' + '<a target="_blank" href="' + point.link + '">' + point.title + '</a>' + '</li>');
             });
             drawRoute();
+            updateHistory ();
         }
 
         function drawRoute() {
@@ -245,6 +248,34 @@
             already_draw.push(udon.features[ret].properties.link)
             return udon.features[ret];
         }
+
+        function updateHistory () {
+            url = '?@'+start.getLngLat().lat+','+start.getLngLat().lng+'@'+goal.getLngLat().lat+','+goal.getLngLat().lng;
+            history.replaceState('', '', url);
+        }
+
+        function parseUrl () {
+            var noparams = {
+                    start : [134.0412469, 34.3493544],
+                    goal : [134.0078172, 34.2143716]
+                };
+            var url = new URL(window.location);
+            var params = url.search.split('@');
+            if (params.length!==3) {
+                return noparams;
+            }
+
+            var start_param = params[1].split(',');
+            var goal_param = params[2].split(',');
+            if (start_param.length!==2 || goal_param.length!==2) {
+                return noparams;
+            }
+            return {
+                    start : [start_param[1], start_param[0]],
+                    goal : [goal_param[1], goal_param[0]]
+                };
+        }
+
 
         function min_d2(x0, y0, x1, y1, x2, y2) {
             var a = x2 - x1;
