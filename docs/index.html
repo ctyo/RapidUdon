@@ -68,7 +68,7 @@
 
     <script>
         $(window).on('touchmove.noScroll', function (e) {
-//            e.preventDefault();
+            //            e.preventDefault();
         });
 
         mapboxgl.accessToken = 'pk.eyJ1IjoiY3R5byIsImEiOiJjanF2cTNjMm8weHVjNDJrOGV2anp3NDFwIn0.4pGtZ9Run1--9FR8NBkuqg';
@@ -156,9 +156,9 @@
         }
 
         function get_near_udon_list() {
-            if (now_loading) {return;}
+            if (now_loading) { return; }
             now_loading = true;
-            setTimeout(function(){now_loading=false}, 200);
+            setTimeout(function () { now_loading = false }, 200);
             init();
             var _start = start;
             while (true) {
@@ -172,7 +172,7 @@
                     turf.point([_start.getLngLat().lng, _start.getLngLat().lat]),
                     turf.point([goal.getLngLat().lng, goal.getLngLat().lat])
                 );
-                if (dist < 20 / 1000 || last_dist+0.1 <= dist) {
+                if (dist < 20 / 1000 || last_dist + 0.1 <= dist) {
                     break;
                 }
 
@@ -189,16 +189,16 @@
 
         function drawRoute() {
             var mapLayer = map.getLayer('route');
-            if(typeof mapLayer !== 'undefined') {
+            if (typeof mapLayer !== 'undefined') {
                 map.removeLayer("route").removeSource('route');
             }
 
             var coordinates = [];
-            coordinates.push([start.getLngLat().lng,start.getLngLat().lat])
+            coordinates.push([start.getLngLat().lng, start.getLngLat().lat])
             routelist.forEach(function (point) {
-                coordinates.push([point.getLngLat().lng,point.getLngLat().lat]);
+                coordinates.push([point.getLngLat().lng, point.getLngLat().lat]);
             });
-            coordinates.push([goal.getLngLat().lng,goal.getLngLat().lat])
+            coordinates.push([goal.getLngLat().lng, goal.getLngLat().lat])
 
 
             map.addLayer({
@@ -264,6 +264,16 @@
 
 
     </script>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-11027566-8"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-11027566-8');
+    </script>
+
 
 </body>
 
