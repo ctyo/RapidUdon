@@ -32,7 +32,8 @@
             border: solid #36beff 5px;
             */
             z-index: 2;
-            background-image: url('http://www.nagai.net/icon-kan/var/udon.img/tenpa.gif');
+            background-image: url('./tenpa.gif');
+            image-rendering: pixelated;
         }
 
         .start_point {
@@ -65,8 +66,8 @@
     </div>
 
     <script>
-        $(window).on('touchmove.noScroll', function (e) {
-            //            e.preventDefault();
+        $('.start_point, .goal_point').on('touchmove', function(e) {
+            e.preventDefault();
         });
 
         mapboxgl.accessToken = 'pk.eyJ1IjoiY3R5byIsImEiOiJjanF2cTNjMm8weHVjNDJrOGV2anp3NDFwIn0.4pGtZ9Run1--9FR8NBkuqg';
