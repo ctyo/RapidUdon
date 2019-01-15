@@ -66,8 +66,10 @@
     </div>
 
     <script>
-        $('.start_point, .goal_point').on('touchmove', function(e) {
-            e.preventDefault();
+        $(window).on('touchmove', function(e) {
+            if (e.target.className==='start_point' || e.target.className==='goal_point' ) {
+                e.preventDefault();
+            }
         });
 
         mapboxgl.accessToken = 'pk.eyJ1IjoiY3R5byIsImEiOiJjanF2cTNjMm8weHVjNDJrOGV2anp3NDFwIn0.4pGtZ9Run1--9FR8NBkuqg';
