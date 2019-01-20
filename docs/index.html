@@ -66,8 +66,8 @@
     </div>
 
     <script>
-        $(window).on('touchmove', function(e) {
-            if (e.target.className==='start_point' || e.target.className==='goal_point' ) {
+        $(window).on('touchmove', function (e) {
+            if (e.target.className === 'start_point' || e.target.className === 'goal_point') {
                 e.preventDefault();
             }
         });
@@ -76,8 +76,8 @@
         var map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v9',
-            center: [134.0079852, 34.2301713],
-            zoom: 9
+            center: [134.0079852, 34.2801713],
+            zoom: 11
         });
         map.addControl(new mapboxgl.NavigationControl());
 
@@ -120,9 +120,11 @@
                         element: el,
                         draggable: true
                     }).setLngLat(init_points.goal).addTo(map);
-
+/*
                     start.on('drag', get_near_udon_list);
                     goal.on('drag', get_near_udon_list);
+*/
+goal.on('dragend', get_near_udon_list_2);
 
                     get_near_udon_list();
                 });
@@ -158,6 +160,57 @@
             $('#list > ol').html('');
         }
 
+        function turfvector2range (v) {
+            if (v < 0) {
+                return v+360;
+            }
+            return v;
+        }
+
+        function get_near_udon_list_2 () {
+            var _s = start.getLngLat();
+            var _st = turf.point([_s.lng, _s.lat]);
+            var _g = goal.getLngLat();
+            var _gt = turf.point([_g.lng, _g.lat]);
+            var route_vector = turfvector2range(turf.bearing(_st , _gt));
+            console.log(route_vector);
+            // startから60度ずつゴール方向にrangeをもたせて
+            // ex : s->g = 20 => -40~80
+            // ex : s-> = -140 => 20~-80
+            var range = 60;
+            var range_min = route_vector-range;
+            if (range_min < -180) {
+                range_min = range+180;
+            }
+            var range_max = route_vector+range;
+            if (range_max > 180) {
+                range_max = range_max-180;
+            }
+
+            // 距離も
+            var route_dist = turf.distance(_st, _gt);
+            console.log(route_dist);
+
+            var available_udon = udon.features.filter(function(u) {
+                var dist = turf.distance(u, _gt);
+                if(route_dist < dist) {
+                    return false;
+                }
+                var point_vector = turfvector2range(turf.bearing(_st, u));
+                if (range_min < range_max) {
+                    return (range_min < point_vector && range_max < point_vector);
+                } else {
+                    return (range_max < point_vector && range_min < point_vector);
+                }
+            });
+            // 全部の点がこのrangeに入っているかチェック、一番近いものを選ぶ
+
+
+            // 現在の点をstartにして繰り返し
+            
+
+        }
+
         function get_near_udon_list() {
             if (now_loading) { return; }
             now_loading = true;
@@ -188,7 +241,7 @@
                 $('#list > ol').append('<li>' + '<a target="_blank" href="' + point.link + '">' + point.title + '</a>' + '</li>');
             });
             drawRoute();
-            updateHistory ();
+            updateHistory();
         }
 
         function drawRoute() {
@@ -249,31 +302,31 @@
             return udon.features[ret];
         }
 
-        function updateHistory () {
-            url = '?@'+start.getLngLat().lat+','+start.getLngLat().lng+'@'+goal.getLngLat().lat+','+goal.getLngLat().lng;
+        function updateHistory() {
+            url = '?@' + start.getLngLat().lat + ',' + start.getLngLat().lng + '@' + goal.getLngLat().lat + ',' + goal.getLngLat().lng;
             history.replaceState('', '', url);
         }
 
-        function parseUrl () {
+        function parseUrl() {
             var noparams = {
-                    start : [134.0412469, 34.3493544],
-                    goal : [134.0078172, 34.2143716]
-                };
+                start: [134.0412469, 34.3493544],
+                goal: [134.0078172, 34.2143716]
+            };
             var url = new URL(window.location);
             var params = url.search.split('@');
-            if (params.length!==3) {
+            if (params.length !== 3) {
                 return noparams;
             }
 
             var start_param = params[1].split(',');
             var goal_param = params[2].split(',');
-            if (start_param.length!==2 || goal_param.length!==2) {
+            if (start_param.length !== 2 || goal_param.length !== 2) {
                 return noparams;
             }
             return {
-                    start : [start_param[1], start_param[0]],
-                    goal : [goal_param[1], goal_param[0]]
-                };
+                start: [start_param[1], start_param[0]],
+                goal: [goal_param[1], goal_param[0]]
+            };
         }
 
 
