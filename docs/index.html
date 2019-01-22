@@ -120,12 +120,9 @@
                         element: el,
                         draggable: true
                     }).setLngLat(init_points.goal).addTo(map);
-/*
+
                     start.on('drag', get_near_udon_list);
                     goal.on('drag', get_near_udon_list);
-*/
-goal.on('dragend', get_near_udon_list_2);
-
                     get_near_udon_list();
                 });
         });
@@ -148,112 +145,141 @@ goal.on('dragend', get_near_udon_list_2);
 
         var now_loading = false;
         var last_dist = 9999;
-        var palready_draw, routelist = [];
-        function init() {
-            routelist.forEach(p => {
+        var drawudon = [];
+
+        setInterval(function () {
+            if (now_loading===true) {
+                now_loading = false;
+            }
+        }, 1000);
+
+        function get_near_udon_list() {
+            if (now_loading===true) {
+                console.log('now loading');
+                return;
+            }
+
+            // init
+            drawudon.forEach(function (p) {
                 p.remove();
             });
-
-            last_dist = 99999;
-            already_draw = [];
-            routelist = [];
+            drawudon = [];
             $('#list > ol').html('');
+            now_loading = true;
+
+            var route = [];
+
+            var _s = start.getLngLat();
+            var s = turf.point([_s.lng, _s.lat]);
+            var _g = goal.getLngLat();
+            var g = turf.point([_g.lng, _g.lat]);
+
+            var available_udon = get_available_udon(s, g);
+            var near_udon = get_nearest_udon(s, available_udon);
+            if (!near_udon) {
+                return;
+            }
+            route.push(near_udon);
+
+            while (true) {
+                var s = route[route.length - 1];
+                var available_udon = get_available_udon(s, g);
+                if (available_udon.length === 0) {
+                    console.log('no available udon');
+                    break;
+                }
+                var near_udon = get_nearest_udon(s, available_udon);
+                if (!near_udon) {
+                    console.log('no nearest udon');
+                    break;
+                }
+
+                var exists_route = route.find(function(r) {
+                    return r === near_udon;
+                });
+                if (exists_route) {
+                    console.log('exists udon');
+                    break;
+                }
+                route.push(near_udon);
+            }
+            console.dir('finish');
+            route.forEach(function (point) {
+                $('#list > ol').append('<li>' + '<a target="_blank" href="' + point.properties.link + '">' + point.properties.title + '</a>' + '</li>');
+            });
+
+            drawRoute(route);
+            updateHistory();
+            now_loading = false;
         }
 
-        function turfvector2range (v) {
+        function get_nearest_udon(s, available_udon) {
+            // 全部の点がこのrangeに入っているかチェック、一番近いものを選ぶ
+            var nearlist_udon;
+            var min_dist = 999999;
+            available_udon.forEach(function (u) {
+                var d = turf.distance(s, u)
+                if (d < min_dist) {
+                    nearlist_udon = u;
+                    min_dist = d;
+                }
+            });
+            return nearlist_udon;
+        }
+        function turfvector2range(v) {
             if (v < 0) {
-                return v+360;
+                return v + 360;
             }
             return v;
         }
+        function get_available_udon(s, g) {
+            var route_vector = turfvector2range(turf.bearing(s, g));
 
-        function get_near_udon_list_2 () {
-            var _s = start.getLngLat();
-            var _st = turf.point([_s.lng, _s.lat]);
-            var _g = goal.getLngLat();
-            var _gt = turf.point([_g.lng, _g.lat]);
-            var route_vector = turfvector2range(turf.bearing(_st , _gt));
-            console.log(route_vector);
             // startから60度ずつゴール方向にrangeをもたせて
             // ex : s->g = 20 => -40~80
             // ex : s-> = -140 => 20~-80
-            var range = 60;
-            var range_min = route_vector-range;
+            var range = 10;
+            var range_min = route_vector - range;
             if (range_min < -180) {
-                range_min = range+180;
+                range_min = range + 180;
             }
-            var range_max = route_vector+range;
+            var range_max = route_vector + range;
             if (range_max > 180) {
-                range_max = range_max-180;
+                range_max = range_max - 180;
             }
 
             // 距離も
-            var route_dist = turf.distance(_st, _gt);
-            console.log(route_dist);
-
-            var available_udon = udon.features.filter(function(u) {
-                var dist = turf.distance(u, _gt);
-                if(route_dist < dist) {
+            var route_dist = turf.distance(s, g);
+            var available_udon = udon.features.filter(function (u) {
+                var dist = turf.distance(u, g);
+                if (route_dist < dist) {
                     return false;
                 }
-                var point_vector = turfvector2range(turf.bearing(_st, u));
+                var point_vector = turfvector2range(turf.bearing(s, u));
                 if (range_min < range_max) {
                     return (range_min < point_vector && range_max < point_vector);
                 } else {
                     return (range_max < point_vector && range_min < point_vector);
                 }
             });
-            // 全部の点がこのrangeに入っているかチェック、一番近いものを選ぶ
-
-
-            // 現在の点をstartにして繰り返し
-            
-
+            return available_udon;
         }
 
-        function get_near_udon_list() {
-            if (now_loading) { return; }
-            now_loading = true;
-            setTimeout(function () { now_loading = false }, 200);
-            init();
-            var _start = start;
-            while (true) {
-                var next_start = get_nearest_point(_start, goal);
-
-                var el = document.createElement('div'); el.className = 'route_point';
-                _start = new mapboxgl.Marker(el).setLngLat(next_start.geometry.coordinates);
-                _start.title = next_start.properties.title;
-                _start.link = next_start.properties.link;
-                var dist = turf.distance(
-                    turf.point([_start.getLngLat().lng, _start.getLngLat().lat]),
-                    turf.point([goal.getLngLat().lng, goal.getLngLat().lat])
-                );
-                if (dist < 20 / 1000 || last_dist + 0.1 <= dist) {
-                    break;
-                }
-
-                _start.addTo(map);
-                routelist.push(_start);
-                last_dist = dist;
-            }
-
-            routelist.forEach(function (point) {
-                $('#list > ol').append('<li>' + '<a target="_blank" href="' + point.link + '">' + point.title + '</a>' + '</li>');
-            });
-            drawRoute();
-            updateHistory();
-        }
-
-        function drawRoute() {
+        function drawRoute(route) {
             var mapLayer = map.getLayer('route');
             if (typeof mapLayer !== 'undefined') {
                 map.removeLayer("route").removeSource('route');
             }
 
+
             var coordinates = [];
             coordinates.push([start.getLngLat().lng, start.getLngLat().lat])
-            routelist.forEach(function (point) {
-                coordinates.push([point.getLngLat().lng, point.getLngLat().lat]);
+            route.forEach(function (point) {
+                var el = document.createElement('div'); el.className = 'route_point';
+                var icon = new mapboxgl.Marker(el).setLngLat(point.geometry.coordinates);
+                drawudon.push(icon.addTo(map));
+
+                coordinates.push(point.geometry.coordinates);
             });
             coordinates.push([goal.getLngLat().lng, goal.getLngLat().lat])
 
