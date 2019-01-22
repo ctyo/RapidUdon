@@ -152,6 +152,13 @@
                     start.on('drag', get_near_udon_list);
                     goal.on('drag', get_near_udon_list);
                     get_near_udon_list();
+
+
+                    map.on('touchstart', 'point', function(e) {
+                        if (e.points.length !== 1) return;
+                        e.preventDefault();
+
+                    });
                 });
         });
 
