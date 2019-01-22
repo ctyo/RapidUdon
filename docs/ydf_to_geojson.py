@@ -4,7 +4,7 @@ import json
 from geojson import Feature, Point, FeatureCollection
 import pprint
 
-def append_feature (ydf):    
+def append_feature (ydf):
     for feature in ydf['Feature']:
         ll = feature['Geometry']['Coordinates'].split(',')
         point = Point((float(ll[0]), float(ll[1])))

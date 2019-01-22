@@ -56,6 +56,32 @@
             z-index: 5;
             image-rendering: pixelated;
         }
+
+        ol {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            width: 100%;
+            height: 100%;
+            list-style-position: inside;
+            font-size: 17px;
+            color: white;
+        }
+        li {
+            width: 130px;
+            height: 100%;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/97/Kakeudon.jpg');
+            background-size: cover;
+            padding: 10px;
+        }
+        li > a, li > a:visited {
+            color :white;
+            text-decoration: none;
+            font-size: 25px;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -148,13 +174,13 @@
         var drawudon = [];
 
         setInterval(function () {
-            if (now_loading===true) {
+            if (now_loading === true) {
                 now_loading = false;
             }
         }, 1000);
 
         function get_near_udon_list() {
-            if (now_loading===true) {
+            if (now_loading === true) {
                 console.log('now loading');
                 return;
             }
@@ -194,7 +220,7 @@
                     break;
                 }
 
-                var exists_route = route.find(function(r) {
+                var exists_route = route.find(function (r) {
                     return r === near_udon;
                 });
                 if (exists_route) {
@@ -207,6 +233,7 @@
             route.forEach(function (point) {
                 $('#list > ol').append('<li>' + '<a target="_blank" href="' + point.properties.link + '">' + point.properties.title + '</a>' + '</li>');
             });
+            $('#list > ol').css('width', route.length*'130' + 'px');
 
             drawRoute(route);
             updateHistory();
