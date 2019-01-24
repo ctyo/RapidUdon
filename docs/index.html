@@ -130,9 +130,7 @@
             color: yellow;
             -webkit-text-stroke: 2px #f00;
             padding: 0;
-            margin: 0;
-            margin-left: 30px;
-
+            margin: 10px 0 0 30px;
             font-weight: bold;
             animation: squash 1s ease-in-out infinite;
 
@@ -151,15 +149,28 @@
                 transform: scale(1) translate(0, 0);
             }
         }
+
+        #hit_count {
+            position: absolute;
+            z-index: 10;
+            top: calc(85% - 35px);
+            font-size: 25px;
+            color: yellow;
+            -webkit-text-stroke: 1px #f00;
+            font-weight: bold;
+            right: 43px;
+        }
     </style>
 </head>
 
 <body>
     <h1>ラピッドうどん</h1>
     <div id='map' style='width: 100%; height: 85%;'></div>
+    <div id='hit_count'>0Hit!</div>
     <div id='list' style='width: 100%; height: 15%;overflow: scroll;-webkit-overflow-scrolling: touch;'>
         <ol></ol>
     </div>
+
 
     <script>
         $(window).on('touchmove', function (e) {
@@ -323,6 +334,7 @@
 
             drawRoute(route);
             updateHistory();
+            $('#hit_count').text(route.length + 'Hit!');
             now_loading = false;
         }
 
