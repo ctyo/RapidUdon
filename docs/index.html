@@ -227,7 +227,7 @@
                         element: el,
                         draggable: true
                     }).setLngLat(init_points.goal).addTo(map);
-
+                    map.fitBounds([init_points.start, init_points.goal], {padding :50});
                     start.on('drag', get_near_udon_list);
                     goal.on('drag', get_near_udon_list);
                     get_near_udon_list();
