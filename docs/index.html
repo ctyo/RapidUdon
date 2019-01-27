@@ -20,6 +20,7 @@
             width: 100%;
             height: 100%;
             font-family: sans-serif;
+            overflow: hidden;
         }
 
         .route_point {
@@ -132,8 +133,7 @@
             padding: 0;
             margin: 10px 0 0 30px;
             font-weight: bold;
-            animation: squash 1s ease-in-out infinite;
-
+            /*            animation: squash 1s ease-in-out infinite; */
         }
 
         @keyframes squash {
@@ -143,6 +143,20 @@
 
             50% {
                 transform: scale(1.02, 0.98) translate(0, 2px);
+            }
+
+            100% {
+                transform: scale(1) translate(0, 0);
+            }
+        }
+
+        @keyframes hopping {
+            0% {
+                transform: scale(1) translate(0, 0);
+            }
+
+            80% {
+                transform: scale(1.1) translate(0, -10px);
             }
 
             100% {
@@ -160,24 +174,32 @@
             font-weight: bold;
             right: 43px;
         }
+
+        .hitmotion {
+            animation: hopping 0.2s ease-in-out;
+        }
     </style>
 </head>
 
 <body>
     <h1>ラピッドうどん</h1>
     <div id='map' style='width: 100%; height: 85%;'></div>
-    <div id='hit_count'>0Hit!</div>
-    <div id='list' style='width: 100%; height: 15%;overflow: scroll;-webkit-overflow-scrolling: touch;'>
+    <div id='hit_count' class=''>0Hit!</div>
+    <div id='list' style='width: 100%; height: 15%;overflow: scroll !important; -webkit-overflow-scrolling: touch;'>
         <ol></ol>
     </div>
 
 
     <script>
-        $(window).on('touchmove', function (e) {
-            if (e.target.className === 'start_point' || e.target.className === 'goal_point') {
-                e.preventDefault();
+        document.addEventListener('touchmove', function (e) {
+            if (e.target.parentElement.id === 'list' ||
+                e.target.parentElement.parentElement.id === 'list' ||
+                e.target.parentElement.parentElement.parentElement.id === 'list'
+            ) {
+                return;
             }
-        });
+            e.preventDefault();
+        }, { passive: false });
 
         mapboxgl.accessToken = 'pk.eyJ1IjoiY3R5byIsImEiOiJjanF2cTNjMm8weHVjNDJrOGV2anp3NDFwIn0.4pGtZ9Run1--9FR8NBkuqg';
         var map = new mapboxgl.Map({
@@ -227,7 +249,7 @@
                         element: el,
                         draggable: true
                     }).setLngLat(init_points.goal).addTo(map);
-                    map.fitBounds([init_points.start, init_points.goal], {padding :50});
+                    map.fitBounds([init_points.start, init_points.goal], { padding: 50 });
                     start.on('drag', get_near_udon_list);
                     goal.on('drag', get_near_udon_list);
                     get_near_udon_list();
@@ -244,6 +266,10 @@
                         var focus = Math.floor(scroll / 120);
                         $('.route_point_focus').removeClass('route_point_focus');
                         drawudon[focus].getElement().classList.add('route_point_focus')
+                    });
+
+                    $('#hit_count').on('webkitAnimationEnd AnimationEnd', function (e) {
+                        $('#hit_count').removeClass('hitmotion');
                     });
 
 
@@ -308,12 +334,12 @@
                 var s = route[route.length - 1];
                 var available_udon = get_available_udon(s, g);
                 if (available_udon.length === 0) {
-                    console.log('no available udon');
+                    //console.log('no available udon'); 
                     break;
                 }
                 var near_udon = get_nearest_udon(s, available_udon);
                 if (!near_udon) {
-                    console.log('no nearest udon');
+                    //console.log('no nearest udon');
                     break;
                 }
 
@@ -321,20 +347,21 @@
                     return r === near_udon;
                 });
                 if (exists_route) {
-                    console.log('exists udon');
+                    //console.log('exists udon');
                     break;
                 }
                 route.push(near_udon);
             }
-            console.dir('finish');
+            //console.dir('finish');
+
             route.forEach(function (point) {
                 $('#list > ol').append('<li>' + '<a target="_blank" href="' + point.properties.link + '">' + point.properties.title + '</a>' + '</li>');
             });
             $('#list > ol').css('width', (route.length + 3) * '120' + 'px');
 
             drawRoute(route);
+            $('#hit_count').text(route.length + 'Hit!').addClass('hitmotion');
             updateHistory();
-            $('#hit_count').text(route.length + 'Hit!');
             now_loading = false;
         }
 
